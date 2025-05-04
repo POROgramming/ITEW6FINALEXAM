@@ -5,7 +5,7 @@
         <i class="bi bi-box-seam me-2"></i>Product Inventory
       </h2>
       <div class="admin-actions">
-        <router-link to="/add-product" class="btn btn-primary">
+        <router-link to="/add-product" class="btn btn-add">
           <i class="bi bi-plus-circle me-2"></i>Add New Product
         </router-link>
       </div>
@@ -194,7 +194,7 @@
             <tr v-if="orders.length === 0">
               <td colspan="5" class="text-center py-4">No orders found</td>
             </tr>
-            <tr v-for="order in orders.slice(0, 5)" :key="order.id">
+            <tr v-for="order in recentOrders" :key="order.id">
               <td>#{{ order.id }}</td>
               <td>{{ formatDate(order.date_ordered) }}</td>
               <td>{{ order.customer }}</td>
@@ -337,7 +337,7 @@
     </div>
   </div>
 
-<!-- Confirmation Modal -->
+    <!-- Confirmation Modal -->
     <div class="modal fade confirm-modal" ref="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -396,6 +396,15 @@ export default {
       price: '',
       stock: ''
     })
+    
+    // Computed property for recent orders - sorted by ID in descending order
+    const recentOrders = computed(() => {
+      return [...orders.value]
+        .sort((a, b) => b.id - a.id) // Sort by ID in descending order
+        .slice(0, 5) // Take only the first 5
+    })
+    
+    // Keep all existing validation functions
     
     const validateName = () => {
       if (!editProduct.name.trim()) {
@@ -727,6 +736,7 @@ export default {
       editModal,
       confirmModal,
       orders,
+      recentOrders, // Add the new computed property to the return object
       searchQuery,
       lowStockCount,
       isLoading,
@@ -780,7 +790,11 @@ export default {
   font-size: clamp(1.25rem, 2vw, 1.5rem); /* Responsive font size */
 }
 
-.btn-primary {
+.btn-add {
+  color: #e9ecef;
+}
+
+.btn-primary, .btn-add {
   background: linear-gradient(135deg, #006884 0%, #053D57 100%);
   border: none;
   padding: 0.5rem 1rem;
@@ -790,12 +804,12 @@ export default {
   transition: all 0.3s ease;
   font-size: 0.9rem;
 }
-.btn-primary:hover:not(:disabled) {
+.btn-primary, .btn-add:hover:not(:disabled){
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 104, 132, 0.3);
 }
 
-.btn-primary:active:not(:disabled) {
+.btn-primary, .btn-add:active:not(:disabled) {
   transform: translateY(1px);
 }
 
@@ -993,7 +1007,7 @@ export default {
 }
 
 table thead tr th:nth-child(2) {
-  width: 25rem;
+  width: 37rem;
 }
 
 
@@ -1270,10 +1284,17 @@ table thead tr th:nth-child(2) {
   .admin-actions {
     width: 100%;
   }
-  
+
+    
   .btn-primary {
     width: 100%;
     padding: 0.6rem;
+  }
+
+  .btn-add {
+    font-size: 0.8rem;
+    width: 10rem;
+    float: right;
   }
   
   .stat-card {
@@ -1461,11 +1482,18 @@ table thead tr th:nth-child(2) {
   .modal-header .modal-title {
     font-size: 1rem;
   }
-  
-  .btn-primary {
+   .btn-primary {
     font-size: 0.8rem;
   }
   
+  .btn-add {
+    font-size: 0.7rem;
+    width: 8.9rem;
+    float: right;
+  }
+
+
+
   .stat-info h3 {
     font-size: 1.1rem;
   }

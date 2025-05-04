@@ -6,7 +6,7 @@
           class="navbar-brand"
           :to="auth.isLoggedIn ? (auth.isStaff ? '/monitor' : '/products') : '/login'"
         >
-          <i class="bi bi-bag-heart-fill me-2"></i>E-Store
+          <i class="bi bi-bag-heart-fill me-2"></i>Bluora
         </router-link>
 
         <button 
@@ -96,7 +96,7 @@
       <div class="container">
         <div class="row">
           <div class="col-md-4 mb-3 mb-md-0">
-            <h5 class="footer-heading">E-Store</h5>
+            <h5 class="footer-heading">Bluora</h5>
             <p class="footer-text">Your one-stop shop for all your needs. Quality products at affordable prices.</p>
           </div>
           <div class="col-md-4 mb-3 mb-md-0">
@@ -110,14 +110,14 @@
           <div class="col-md-4">
             <h5 class="footer-heading">Contact Us</h5>
             <p class="footer-text">
-              <i class="bi bi-envelope me-2"></i> support@estore.com<br>
+              <i class="bi bi-envelope me-2"></i> support@bluora.com<br>
               <i class="bi bi-telephone me-2"></i> +1 (123) 456-7890<br>
               <i class="bi bi-geo-alt me-2"></i> 123 E-Commerce St, Digital City
             </p>
           </div>
         </div>
         <div class="footer-bottom">
-          <p class="mb-0">© 2025 E-Store. All rights reserved.</p>
+          <p class="mb-0">© 2025 Bluora. All rights reserved.</p>
           <div class="social-icons">
             <a href="#" class="social-icon"><i class="bi bi-facebook"></i></a>
             <a href="#" class="social-icon"><i class="bi bi-twitter"></i></a>
@@ -354,6 +354,7 @@ body {
 .nav-link:hover, .nav-link.router-link-active {
   background-color: rgba(255, 255, 255, 0.15);
   color: white;
+  padding-left: 11px;
 }
 
 .user-info {

@@ -8,7 +8,7 @@
 
     <div v-if="!cart || cart.length === 0" class="empty-cart">
       <div class="empty-cart-content">
-        <i class="bi bi-cart-x"></i>
+        <i class="bi bi-cart-x cart-icon"></i>
         <h3>Your cart is empty</h3>
         <p>Add some products to your cart to continue shopping.</p>
         <router-link to="/products" class="btn btn-primary mt-3">
@@ -430,12 +430,7 @@ export default {
       
       isCheckingOut.value = true
       
-      try {
-        if (!cart.value.length) {
-          error('Your cart is empty')
-          return
-        }
-        
+      try {        
         // Validate cart items
         for (const item of cart.value) {
           if (!item || !item.product || !item.product.id) {
@@ -494,11 +489,7 @@ export default {
     }
     
     const validateCart = () => {
-      if (!cart.value.length) {
-        error('Your cart is empty')
-        return false
-      }
-      
+ 
       let isValid = true
       
       // Check for invalid items
@@ -717,6 +708,11 @@ export default {
   --font-xl: 1.5rem;    /* 24px */
   --font-2xl: 1.75rem;  /* 28px */
   --font-3xl: 2rem;     /* 32px */
+}
+
+.bi-cart-x::before {
+  font-size: 5rem;
+  margin-bottom: 18px;
 }
 
 .section-title {

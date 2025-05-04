@@ -252,9 +252,9 @@
   /* For very small screens */
   @media (max-width: 360px) {
     .toast-container {
-      top: 20px;
+      top: 45px;
       right: 5px;
-      left: 4.8rem;
+      left: 4.6rem;
       width: 15rem;
     }
     

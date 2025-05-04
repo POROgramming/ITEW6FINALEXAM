@@ -4,6 +4,45 @@
       <h2 class="section-title">
         <i class="bi bi-clock-history me-2"></i>My Orders
       </h2>
+      
+      <!-- Search and Sort Controls -->
+      <div class="controls-wrapper mt-3">
+        <div class="search-wrapper">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-search"></i>
+            </span>
+            <input 
+              type="text" 
+              class="form-control" 
+              v-model="searchTerm" 
+              placeholder="Search orders or products..."
+            />
+            <button 
+              v-if="searchTerm" 
+              class="btn btn-outline-secondary" 
+              type="button"
+              @click="searchTerm = ''"
+            >
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="sort-wrapper">
+          <div class="input-group">
+            <label class="input-group-text" for="sortSelect">
+              <i class="bi bi-sort-down"></i>
+            </label>
+            <select class="form-select" id="sortSelect" v-model="sortOption">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest">Highest Amount</option>
+              <option value="lowest">Lowest Amount</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="isLoading" class="text-center py-5">
@@ -24,8 +63,27 @@
       </router-link>
     </div>
 
+    <div v-else-if="paginatedOrders.length === 0" class="empty-orders">
+      <i class="bi bi-search"></i>
+      <h3>No matching orders</h3>
+      <p>No orders match your search criteria.</p>
+      <button class="btn btn-primary mt-3" @click="searchTerm = ''">
+        <i class="bi bi-arrow-counterclockwise me-2"></i>Clear Search
+      </button>
+    </div>
+
     <div v-else>
-      <div class="order-card card mb-4" v-for="order in orders" :key="order.id">
+      <!-- Results summary -->
+      <div class="results-summary mb-3" v-if="searchTerm">
+        <span>
+          <strong>{{ filteredOrders.length }}</strong> {{ filteredOrders.length === 1 ? 'result' : 'results' }} found
+          <button class="btn btn-sm btn-link p-0 ms-2" @click="searchTerm = ''">
+            <i class="bi bi-x-circle"></i> Clear
+          </button>
+        </span>
+      </div>
+      
+      <div class="order-card card mb-4" v-for="order in paginatedOrders" :key="order.id">
         <div class="card-header">
           <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
@@ -94,6 +152,48 @@
             <i class="bi bi-exclamation-triangle-fill me-1"></i>
             Cannot reorder - all items are out of stock
           </div>
+        </div>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="pagination-wrapper" v-if="totalPages > 1">
+        <nav aria-label="Order history pagination">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+              <button class="page-link" @click="currentPage = 1" :disabled="currentPage === 1">
+                <i class="bi bi-chevron-double-left"></i>
+              </button>
+            </li>
+            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+              <button class="page-link" @click="currentPage--" :disabled="currentPage === 1">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+            
+            <li v-for="page in displayedPages" :key="page" class="page-item" :class="{ active: currentPage === page }">
+              <button class="page-link" @click="currentPage = page">{{ page }}</button>
+            </li>
+            
+            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+              <button class="page-link" @click="currentPage++" :disabled="currentPage === totalPages">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+              <button class="page-link" @click="currentPage = totalPages" :disabled="currentPage === totalPages">
+                <i class="bi bi-chevron-double-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
+        
+        <div class="items-per-page">
+          <span>Items per page:</span>
+          <select v-model="itemsPerPage" class="form-select form-select-sm">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+          </select>
         </div>
       </div>
     </div>
@@ -204,7 +304,7 @@
 
 <script>
 import axios from '../axios'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useToastStore } from '../stores/toastStore'
 import * as bootstrap from 'bootstrap'
 
@@ -219,7 +319,124 @@ export default {
     const confirmMessage = ref('')
     const orderToReorder = ref(null)
     const unavailableItems = ref([])
+    const partiallyAvailableItems = ref([])
     const toast = useToastStore()
+    
+    // Search, sort, and pagination state
+    const searchTerm = ref('')
+    const sortOption = ref('newest')
+    const currentPage = ref(1)
+    const itemsPerPage = ref(5)
+    
+    // Reset to first page when search term or sort option changes
+    watch([searchTerm, sortOption, itemsPerPage], () => {
+      currentPage.value = 1
+    })
+    
+    // Filter orders based on search term
+    const filteredOrders = computed(() => {
+      if (!searchTerm.value.trim()) return orders.value
+      
+      const term = searchTerm.value.toLowerCase().trim()
+      
+      return orders.value.filter(order => {
+        // Search by order ID
+        if (order.id.toString().includes(term)) return true
+        
+        // Search by product name
+        if (order.items && order.items.length > 0) {
+          return order.items.some(item => {
+            const product = getProductDetails(item.product)
+            if (product && product.name) {
+              return product.name.toLowerCase().includes(term)
+            }
+            return false
+          })
+        }
+        
+        return false
+      })
+    })
+    
+    // Sort filtered orders
+    const sortedOrders = computed(() => {
+      const filtered = [...filteredOrders.value]
+      
+      switch (sortOption.value) {
+        case 'newest':
+          return filtered.sort((a, b) => new Date(b.date_ordered) - new Date(a.date_ordered))
+        case 'oldest':
+          return filtered.sort((a, b) => new Date(a.date_ordered) - new Date(b.date_ordered))
+        case 'highest':
+          return filtered.sort((a, b) => calculateOrderTotal(b) - calculateOrderTotal(a))
+        case 'lowest':
+          return filtered.sort((a, b) => calculateOrderTotal(a) - calculateOrderTotal(b))
+        default:
+          return filtered
+      }
+    })
+    
+    // Calculate total pages
+    const totalPages = computed(() => {
+      return Math.ceil(sortedOrders.value.length / itemsPerPage.value)
+    })
+    
+    // Calculate which page numbers to display
+    const displayedPages = computed(() => {
+      const pages = []
+      const maxVisiblePages = 5
+      
+      if (totalPages.value <= maxVisiblePages) {
+        // Show all pages if there are 5 or fewer
+        for (let i = 1; i <= totalPages.value; i++) {
+          pages.push(i)
+        }
+      } else {
+        // Always show first page
+        pages.push(1)
+        
+        // Calculate middle pages
+        let startPage = Math.max(2, currentPage.value - 1)
+        let endPage = Math.min(totalPages.value - 1, currentPage.value + 1)
+        
+        // Adjust if at the beginning
+        if (currentPage.value <= 3) {
+          endPage = 4
+        }
+        
+        // Adjust if at the end
+        if (currentPage.value >= totalPages.value - 2) {
+          startPage = totalPages.value - 3
+        }
+        
+        // Add ellipsis after first page if needed
+        if (startPage > 2) {
+          pages.push('...')
+        }
+        
+        // Add middle pages
+        for (let i = startPage; i <= endPage; i++) {
+          pages.push(i)
+        }
+        
+        // Add ellipsis before last page if needed
+        if (endPage < totalPages.value - 1) {
+          pages.push('...')
+        }
+        
+        // Always show last page
+        pages.push(totalPages.value)
+      }
+      
+      return pages
+    })
+    
+    // Get paginated orders
+    const paginatedOrders = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage.value
+      const end = start + itemsPerPage.value
+      return sortedOrders.value.slice(start, end)
+    })
     
     const formatDate = (dateString) => {
       const options = { 
@@ -280,6 +497,56 @@ export default {
       return items
     }
     
+    const getPartiallyAvailableItems = (order) => {
+      if (!order.items) return []
+      
+      const items = []
+      order.items.forEach(item => {
+        const product = getProductDetails(item.product)
+        if (product && product.stock > 0 && product.stock < item.quantity) {
+          items.push({
+            id: product.id,
+            name: product.name,
+            requestedQty: item.quantity,
+            availableQty: product.stock
+          })
+        }
+      })
+      
+      return items
+    }
+    
+    const isItemUnavailable = (item) => {
+      const product = getProductDetails(item.product)
+      return !product || product.stock === 0
+    }
+    
+    const isItemPartiallyAvailable = (item) => {
+      const product = getProductDetails(item.product)
+      return product && product.stock > 0 && product.stock < item.quantity
+    }
+    
+    const calculateAvailableTotal = (order) => {
+      let subtotal = 0
+      
+      if (order && order.items) {
+        order.items.forEach(item => {
+          const product = getProductDetails(item.product)
+          if (product && product.stock > 0) {
+            // Only count available quantity
+            const availableQty = Math.min(item.quantity, product.stock)
+            subtotal += product.price * availableQty
+          }
+        })
+      }
+      
+      // For now, total is same as subtotal (no tax, shipping, etc.)
+      return {
+        subtotal,
+        total: subtotal
+      }
+    }
+    
     const reorderItems = (order) => {
       // Check if any items are available
       if (!hasAvailableItems(order)) {
@@ -290,8 +557,9 @@ export default {
       // Set the order to reorder
       orderToReorder.value = order
       
-      // Get unavailable items
+      // Get unavailable and partially available items
       unavailableItems.value = getUnavailableItems(order)
+      partiallyAvailableItems.value = getPartiallyAvailableItems(order)
       
       // Set confirmation message
       if (unavailableItems.value.length > 0) {
@@ -417,12 +685,26 @@ export default {
       isReordering,
       confirmModal,
       confirmMessage,
+      orderToReorder,
       unavailableItems,
+      partiallyAvailableItems,
+      searchTerm,
+      sortOption,
+      currentPage,
+      itemsPerPage,
+      filteredOrders,
+      sortedOrders,
+      paginatedOrders,
+      totalPages,
+      displayedPages,
       formatDate,
       fullImageUrl,
       getProductDetails,
       calculateOrderTotal,
       hasAvailableItems,
+      isItemUnavailable,
+      isItemPartiallyAvailable,
+      calculateAvailableTotal,
       reorderItems,
       confirmReorder,
       hideConfirmModal
@@ -444,6 +726,56 @@ export default {
   font-weight: 700;
   margin-bottom: 0;
   font-size: 1.5rem;
+}
+
+/* Search and Sort Controls */
+.controls-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-wrapper {
+  flex: 1;
+  min-width: 250px;
+}
+
+.sort-wrapper {
+  width: auto;
+  min-width: 200px;
+}
+
+.input-group-text {
+  background-color: white;
+  border-right: none;
+}
+
+.form-control {
+  border-left: none;
+}
+
+.form-control:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+.form-select:focus {
+  box-shadow: none;
+  border-color: #ced4da;
+}
+
+/* Results summary */
+.results-summary {
+  font-size: 0.9rem;
+  color: #666;
+  padding: 0.5rem 0;
+}
+
+.results-summary .btn-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.85rem;
 }
 
 .empty-orders {
@@ -618,6 +950,61 @@ export default {
 
 .card-footer .btn {
   padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Pagination */
+.pagination-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.pagination {
+  margin-bottom: 0;
+}
+
+.page-item.active .page-link {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.page-link {
+  color: var(--primary);
+  border-radius: 6px;
+  margin: 0 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.page-link:focus {
+  box-shadow: none;
+}
+
+.page-link:hover {
+  background-color: #f8f9fa;
+  color: var(--primary-dark);
+}
+
+.items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.items-per-page .form-select {
+  width: auto;
+  padding: 0.25rem 1.5rem 0.25rem 0.5rem;
   font-size: 0.85rem;
 }
 
@@ -933,6 +1320,16 @@ export default {
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
+  .controls-wrapper {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .search-wrapper,
+  .sort-wrapper {
+    width: 100%;
+  }
+  
   .modal-dialog {
     margin: 0.5rem;
   }
@@ -976,8 +1373,13 @@ export default {
   .validation-desc {
     font-size: 0.75rem;
   }
+  
+  .pagination-wrapper {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }
-/* Mobile responsiveness */
+
 @media (max-width: 768px) {
   .section-title {
     font-size: 1.3rem;
@@ -1097,6 +1499,7 @@ export default {
   .card-footer .btn {
     width: 100%;
   }
+  
   .modal-header {
     padding: 1rem 1.25rem;
   }
@@ -1109,48 +1512,27 @@ export default {
     padding: 1rem 1.25rem;
     flex-direction: column;
     gap: 0.75rem;
-    height: 4.1rem;
+    height: auto;
   }
   
   .btn-primary, 
   .btn-outline-secondary {
-    width: 8rem;
-    height: 30%;
+    width: 100%;
     padding: 0.65rem 1rem;
-    font-size: 12px;
+    font-size: 0.9rem;
   }
   
-  .preview-heading {
+  .page-link {
+    min-width: 32px;
+    height: 32px;
     font-size: 0.85rem;
   }
-  
-  .preview-item-name {
-    font-size: 0.8rem;
-  }
-  
-  .order-preview {
-    padding: 1rem;
-    margin-top: 1rem;
-  }
-  
-  .preview-items {
-    max-height: 200px;
-  }
-  
-  .preview-total-row {
-    font-size: 0.85rem;
-  }
-  
-  .preview-total-row.grand-total {
-    font-size: 0.95rem;
-  }
-  
-  .validation-message {
-    padding: 0.75rem;
-  }
-  
-  .validation-message i {
-    font-size: 1rem;
+  .items-per-page .form-select{
+    padding-right: 1.5rem;
+    padding-left: 0.7rem;
   }
 }
 </style>
+
+
+
