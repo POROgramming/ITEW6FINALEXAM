@@ -386,7 +386,7 @@ export default {
       }
     }
     
-    // Mock promo codes for demonstration
+    // Mock promo codes for demonstration only
     const promoCodes = [
       { code: 'WELCOME10', discount: 10 },
       { code: 'SAVE20', discount: 20 },
