@@ -101,6 +101,7 @@
 </template>
 
 <script>
+//importing axios
 import axios from '../axios'
 
 export default {
@@ -147,7 +148,7 @@ export default {
         })
         this.showNotification('success', 'Product added successfully!')
         
-        // Reset form
+        // Reset the form
         this.product = { name: '', description: '', price: 0, stock: 0 }
         this.image = null
         this.imagePreview = null

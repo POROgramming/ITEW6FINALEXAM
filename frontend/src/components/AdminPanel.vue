@@ -6,7 +6,7 @@
       </h2>
     </div>
     
-    <!-- Stats Cards -->
+    <!-- Stats Cards for visuals-->
     <div class="row mb-4">
       <div class="col-md-4 mb-3">
         <div class="stat-card card">
