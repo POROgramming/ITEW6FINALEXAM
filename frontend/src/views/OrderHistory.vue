@@ -5,7 +5,7 @@
         <i class="bi bi-clock-history me-2"></i>My Orders
       </h2>
       
-      <!-- Search and Sort Controls -->
+      <!-- Search and Sorting Controls -->
       <div class="controls-wrapper mt-3">
         <div class="search-wrapper">
           <div class="input-group">

@@ -212,7 +212,7 @@ export default {
         fetchUsername()
       }
       
-      // Initialize cart count
+      // Initialize cart counts
       updateCartCount()
       
       // Listen for localStorage changes (works across tabs)
